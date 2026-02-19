@@ -287,6 +287,18 @@ async def job_management(
     return job_settings
 
 
+@router.get("/job-management-settings")
+async def get_job_management(
+    user: User = Depends(role_required(UserRole.ADMIN))
+    ):
+    job_settings = await JobManagementSettings.filter().first()
+
+    if not job_settings:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="job settings not found")
+    
+    return job_settings
+
+
 
 
 @router.post("/user-list")

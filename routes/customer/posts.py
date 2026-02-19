@@ -100,6 +100,64 @@ async def create_post(
 
 
 
+# @router.get("/posts/")
+# async def list_posts(
+#     new_status: StatusEnum | None = Query(None),
+#     user: User = Depends(get_current_user)
+# ):
+#     if not user:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Authentication required"
+#         )
+
+#     query = Q()
+
+#     # 👤 CUSTOMER: only their own posts
+#     if user.role == UserRole.CUSTOMER:
+#         query &= Q(customer_id=user.id)
+#         if new_status:
+#             query &= Q(status=new_status)
+
+#         posts = await (
+#             PostRequest
+#             .filter(query)
+#             .prefetch_related("customer")
+#             .order_by("-created_at")
+#         )
+
+#         return {"posts": posts}
+
+#     # 🛠 INSTALLER: posts in their service areas
+#     elif user.role == UserRole.INSTALLER:
+#         areas = await InstallerServiceArea.filter(
+#             installer_id=user.id
+#         ).values_list("area_id", flat=True)
+
+#         query1 &= (Q(area_id__in=areas) & Q(installer_id__isnull=True))
+#         query2 &= Q(installer_id=user.id) 
+
+#     if new_status:
+#         query1 &= Q(status=new_status)
+#         query2 &= Q(status=new_status)
+
+#     new_posts = await (
+#         PostRequest
+#         .filter(query1)
+#         .prefetch_related("customer")
+#         .order_by("-created_at")
+#     )
+#     assigned_post = await (
+#         PostRequest
+#         .filter(query2)
+#         .prefetch_related("customer")
+#         .order_by("-created_at")
+#     )
+
+#     return {"new_posts": new_posts, "assigned_post": assigned_post}
+
+
+
 @router.get("/posts/")
 async def list_posts(
     new_status: StatusEnum | None = Query(None),
@@ -111,32 +169,61 @@ async def list_posts(
             detail="Authentication required"
         )
 
-    query = Q()
-
-    # 👤 CUSTOMER: only their own posts
+    # 👤 CUSTOMER
     if user.role == UserRole.CUSTOMER:
-        query &= Q(customer_id=user.id)
+        query = Q(customer_id=user.id)
 
-    # 🛠 INSTALLER: posts in their service areas
+        if new_status:
+            query &= Q(status=new_status)
+
+        posts = await (
+            PostRequest
+            .filter(query)
+            .prefetch_related("customer")
+            .order_by("-created_at")
+        )
+
+        return {"posts": posts}
+
+    # 🛠 INSTALLER
     elif user.role == UserRole.INSTALLER:
+
         areas = await InstallerServiceArea.filter(
             installer_id=user.id
         ).values_list("area_id", flat=True)
 
-        query &= Q(area_id__in=areas)
-        query &= (Q(installer_id=user.id) | Q(installer_id__isnull=True))
+        query1 = Q(area_id__in=areas) & Q(installer_id__isnull=True)
+        query2 = Q(installer_id=user.id)
 
-    if new_status:
-        query &= Q(status=new_status)
+        if new_status:
+            query1 &= Q(status=new_status)
+            query2 &= Q(status=new_status)
 
-    posts = await (
-        PostRequest
-        .filter(query)
-        .prefetch_related("customer")
-        .order_by("-created_at")
+        new_posts = await (
+            PostRequest
+            .filter(query1)
+            .prefetch_related("customer")
+            .order_by("-created_at")
+        )
+
+        assigned_post = await (
+            PostRequest
+            .filter(query2)
+            .prefetch_related("customer")
+            .order_by("-created_at")
+        )
+
+        return {
+            "new_posts": new_posts,
+            "assigned_post": assigned_post
+        }
+
+    # ❌ Other roles
+    raise HTTPException(
+        status_code=403,
+        detail="Not authorized"
     )
 
-    return {"posts": posts}
 
 
 @router.get("/posts/{post_id}/")

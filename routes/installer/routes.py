@@ -133,6 +133,20 @@ async def availability(
 
 
 
+
+@router.get("/installer-availability-get/")
+async def availability_get(
+    user: User = Depends(get_current_user)):
+    available = await AvailabilitySettings.filter(installer_id = user.id).first()
+
+    if not available:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="There is no availablity exist")
+    
+
+    return available
+
+
+
 #==============================================================
 #           Installer Area
 #==============================================================
