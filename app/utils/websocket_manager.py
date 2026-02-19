@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Dict, Set, Optional, Tuple, List
 from fastapi import WebSocket
+from applications.user.models import User
 from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
@@ -418,20 +419,37 @@ class ProductionConnectionManager:
             self.active_chats[to_key].add(from_key)
 
             # Database (for persistence and reconnection detection)
-            session, created = await ChatSession.get_or_create(
+
+            session = await ChatSession.filter(
                 user1_type=from_type,
                 user1_id=from_id,
                 user2_type=to_type,
-                user2_id=to_id,
-                defaults={
-                    "is_active": True,
-                    "last_message_at": datetime.utcnow()
-                }
-            )
-
-            if not created:
+                user2_id=to_id
+            ).first()
+            if not session:
+                session = await ChatSession.filter(
+                    user1_type=to_type,
+                    user1_id=to_id,
+                    user2_type=from_type,
+                    user2_id=from_id
+                ).first()
+            
+            if session:
                 session.is_active = True
                 await session.save()
+
+            else:
+                session = await ChatSession.create(
+                    user1_type=from_type,
+                    user1_id=from_id,
+                    user2_type=to_type,
+                    user2_id=to_id,
+                    defaults={
+                        "is_active": True,
+                        "last_message_at": datetime.utcnow()
+                    }
+                )
+
 
             logger.info(f"Chat session started: {from_key} <-> {to_key}")
             return True
@@ -484,7 +502,7 @@ class ProductionConnectionManager:
 
     async def is_chatting_with(self, from_type: str, from_id: str, to_type: str, to_id: str) -> bool:
         """
-        Check if two users have an active chat session.
+        Check if two users have an actinstallersive chat session.
         Checks both in-memory and database.
         """
         try:
@@ -819,15 +837,19 @@ class ProductionConnectionManager:
             result = []
             for s in sessions:
                 if s.user1_type == client_type and s.user1_id == user_id:
+                    user = await User.get(id=user_id)
                     result.append({
                         "type": s.user2_type,
                         "id": s.user2_id,
+                        "user_name": user.name,
                         "last_message_at": s.last_message_at.isoformat() if s.last_message_at else None
                     })
                 else:
+                    user = await User.get(id=user_id)
                     result.append({
                         "type": s.user1_type,
                         "id": s.user1_id,
+                        "user_name": user.name,
                         "last_message_at": s.last_message_at.isoformat() if s.last_message_at else None
                     })
 
