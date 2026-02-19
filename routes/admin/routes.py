@@ -9,6 +9,7 @@ from app.utils.file_manager import save_file
 from typing import Optional
 from datetime import datetime
 from routes.communications.notifications import NotificationIn, send_notification
+from tortoise.functions import Count
 
 
 
@@ -206,6 +207,7 @@ async def create_post_from_admin(
 
     post = await PostRequest.create(
         customer_id=user.id,
+        area_id=1,
         pet_name=pet_name,
         pet_type=pet_type,
         price=price,
@@ -332,4 +334,40 @@ async def delete_user(
     await deleted_user.delete()
 
     return {"detail": "The user has been deleted successfully"}
+
+
+
+
+
+
+
+@router.get("/post-stats")
+async def post_statistics(
+    user: User = Depends(role_required(UserRole.ADMIN))
+):
+    stats = await (
+        PostRequest
+        .annotate(count=Count("id"))
+        .group_by("status")
+        .values("status", "count")
+    )
+
+    result = {
+        "new_job_count": 0,
+        "pending_bid_count": 0,
+        "installer_assigned_count": 0,
+        "deu_count": 0,
+    }
+
+    for item in stats:
+        if item["status"] == StatusEnum.PENDING:
+            result["new_job_count"] = item["count"]
+        elif item["status"] == StatusEnum.RECEIVING_BIDS:
+            result["pending_bid_count"] = item["count"]
+        elif item["status"] == StatusEnum.INSTALLER_ASSIGNED:
+            result["installer_assigned_count"] = item["count"]
+        elif item["status"] == StatusEnum.IN_PROGRESS:
+            result["deu_count"] = item["count"]
+
+    return result
 
