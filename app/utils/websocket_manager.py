@@ -837,7 +837,7 @@ class ProductionConnectionManager:
             result = []
             for s in sessions:
                 if s.user1_type == client_type and s.user1_id == user_id:
-                    user = await User.get(id=user_id)
+                    user = await User.get(id=s.user2_id)
                     result.append({
                         "type": s.user2_type,
                         "id": s.user2_id,
@@ -845,7 +845,7 @@ class ProductionConnectionManager:
                         "last_message_at": s.last_message_at.isoformat() if s.last_message_at else None
                     })
                 else:
-                    user = await User.get(id=user_id)
+                    user = await User.get(id=s.user1_id)
                     result.append({
                         "type": s.user1_type,
                         "id": s.user1_id,
