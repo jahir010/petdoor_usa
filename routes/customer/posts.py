@@ -234,11 +234,15 @@ async def get_post(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
-    post = await PostRequest.filter(id=post_id).prefetch_related("customer").first()
+    post = await PostRequest.filter(id=post_id).prefetch_related("customer", "installer").first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    
+    if post.installer:
+        installer_name = post.installer.name
+        return {"post": post, "installer_name": installer_name, "customer_name": post.customer.name}
 
-    return {"post": post}
+    return {"post": post, "customer_name": post.customer.name}
 
 
 @router.post("/posts/{post_id}/bids/")
