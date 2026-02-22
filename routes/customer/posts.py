@@ -7,7 +7,7 @@ from applications.installer.models import InstallerServiceArea
 from routes.communications.notifications import send_notification, NotificationIn
 from app.auth import login_required, role_required
 from app.utils.file_manager import save_file
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from tortoise.expressions import Q
 
@@ -18,6 +18,25 @@ from tortoise.expressions import Q
 router = APIRouter(tags=['Customer Posts'])
 
 
+
+async def serialize_bid(bid: Bid) -> Dict[str, Any]:
+
+    print(bid)
+    
+    data = {
+        "id": bid.id,
+        "post_id": bid.post_request_id,
+        "installer_id": bid.installer_id,
+        "installer_name": bid.installer.name,
+        "price" : bid.price,
+        "status": bid.status,
+        "note": bid.note,
+        "created_at": bid.created_at,
+        "updated_at": bid.updated_at
+    }
+    print(data)
+
+    return data
 
 
 @router.post("/posts/")
@@ -241,16 +260,16 @@ async def list_bids(
         customer_photo= post.customer.photo
     elif not post_id and user.role == UserRole.INSTALLER:
         print("INSTALLER ALL BIDS LISTING FOR USER ID:", user.id)
-        bids = await Bid.filter(installer_id=user.id).prefetch_related("post_request__customer").order_by("-created_at")
+        bids = await Bid.filter(installer_id=user.id).prefetch_related("installer").order_by("-created_at")
         print("INSTALLER ALL BIDS:", bids)
         customer_name = ""
         customer_id = ""
         customer_photo= ''
-        return {"bids": bids}
+        return {"bids": [await serialize_bid(bid) for bid in bids]}
     else:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
-    return {"customer_id": customer_id, "customer_name": customer_name, "customer_photo": customer_photo, "post": post, "bids": bids}
+    return {"customer_id": customer_id, "customer_name": customer_name, "customer_photo": customer_photo, "post": post, "bids": [await serialize_bid(bid) for bid in bids]}
 
 
 
@@ -381,3 +400,37 @@ async def update_post(
         await post.save()
 
         return {"message": "Post updated successfully", "post": post}
+
+
+
+@router.patch("/adjust-bid/{bid_id}/")
+async def adjust_bid(
+    bid_id: str ,
+    price: float = Query(...),
+    reason: Optional[str] = Query(None),
+    user: User = Depends(role_required(UserRole.INSTALLER))
+    ):
+    
+    bid = await Bid.get_or_none(id=bid_id)
+    if not bid:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="bid not found")
+    
+    bid.price = price
+    bid.note = reason
+    await bid.save()
+
+    post = await PostRequest.get(id=bid.post_request_id)
+
+    try:
+        await send_notification(NotificationIn(
+            user_id=post.customer_id,
+            title="bid adjustment",
+            body=f"you got and bid adjustment for {post.id} of bid {bid.id}"
+        ))
+    except:
+        pass
+
+    return bid
+
+
+

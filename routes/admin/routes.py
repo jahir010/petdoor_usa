@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Request, Response, UploadFile, File, Query, Path
 from pydantic import BaseModel
 from applications.user.models import User, UserRole
-from applications.admin.models import FAQ, ContactInfo, CustomerInfo, ServiceArea, JobManagementSettings
+from applications.admin.models import FAQ, ContactInfo, CustomerInfo, ServiceArea, JobManagementSettings, PaymentSettings
 from app.token import get_current_user
 from applications.customer.posts import PostRequest, Bid, InstallationSurface, StatusEnum, BidStatus
 from applications.payments.models import Payment
@@ -416,4 +416,35 @@ async def payment_history(
     history = await Payment.filter(filters).offset(offset).limit(limit)
 
     return history
+
+
+
+@router.get("/payment-settings/")
+async def payment_settings(
+    user: User = Depends(role_required(UserRole.ADMIN))
+    ):
+    payment_setting = await PaymentSettings.filter().first()
+
+    if not payment_setting:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="payment settings not found")
+
+    return payment_setting
+
+
+@router.post("/payment-settings/")
+async def payment_settings(
+    new_status: bool = Form(...),
+    user: User = Depends(role_required(UserRole.ADMIN))
+    ):
+    payment_setting = await PaymentSettings.filter().first()
+
+    if payment_setting:
+        payment_setting.status = new_status
+        await PaymentSettings.save()
+    else:
+        payment_setting = await PaymentSettings.create(status=new_status)
+
+    return payment_setting
+
+
 
