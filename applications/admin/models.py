@@ -71,3 +71,13 @@ class JobManagementSettings(models.Model):
 
 
 
+class PaymentSettings(models.Model):
+    id = fields.IntField(pk=True)
+    status = fields.BooleanField(default=True)
+    updated_at = fields.DatetimeField(auto_now=True)
+
+    class Meta:
+        table = "payment_settings"
+
+
+
