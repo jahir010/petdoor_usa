@@ -123,9 +123,10 @@ async def create_payment_intent(
     post=post,
     customer=user,
     installer=installer,
+    payment_type = "stripe",
     stripe_payment_intent_id=intent.id,
-    amount=amount,
-    platform_fee=platform_fee,
+    amount=amount/100,
+    platform_fee=platform_fee/100,
     installer_amount=amount - platform_fee,
     currency="usd",
     status="pending"
@@ -161,3 +162,30 @@ async def stripe_webhook(request: Request):
         await payment.save()
 
     return {"status": "success"}
+
+
+
+@router.post("/cash-payment/")
+async def cash_payment(post_id: str = Form(...), user: User = Depends(get_current_user)):
+    post = await PostRequest.get_or_none(id=post_id)
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The post is not found")
+    
+    if post.customer_id != user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This user no longer a customer for this post")
+    
+    post.status = StatusEnum.COMPLETED
+    await post.save()
+    
+    payment = await Payment.create(
+        post=post,
+        customer_id=post.customer_id,
+        installer_id=post.installer_id,
+        payment_type = "cash",
+        amount=post.price,
+        installer_amount=post.price,
+        currency="usd",
+        status="succeeded"
+    )
+
+    return payment
