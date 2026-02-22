@@ -4,12 +4,15 @@ from applications.user.models import User, UserRole
 from applications.admin.models import FAQ, ContactInfo, CustomerInfo, ServiceArea, JobManagementSettings
 from app.token import get_current_user
 from applications.customer.posts import PostRequest, Bid, InstallationSurface, StatusEnum, BidStatus
+from applications.payments.models import Payment
 from app.auth import login_required, role_required
 from app.utils.file_manager import save_file
 from typing import Optional
 from datetime import datetime
 from routes.communications.notifications import NotificationIn, send_notification
 from tortoise.functions import Count
+from enum import Enum
+from tortoise.expressions import Q
 
 
 
@@ -370,4 +373,47 @@ async def post_statistics(
             result["deu_count"] = item["count"]
 
     return result
+
+class PaymentStype(str, Enum):
+    cash = "cash"
+    stripe = "stripe"
+
+class PaymentStatus(str, Enum):
+    pending = "pending"
+    succeeded = "succeeded"
+    faild = "faild"
+    refunded = "refunded"
+
+@router.get("/payment-history/")
+async def payment_history(
+    payment_type: Optional[PaymentStype] = Query(None),
+    payment_status: Optional[PaymentStatus] = Query(None),
+    user_id: Optional[str] = Query(None),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1),
+    user: User = Depends(get_current_user)
+):
+
+    filters = Q()
+
+    if payment_type:
+        filters &= Q(payment_type=payment_type)
+
+    if payment_status:
+        filters &= Q(status=payment_status)
+
+    if user_id:
+        filters &= (Q(customer_id=user_id) | Q(installer_id=user_id))
+
+    if start_date:
+        filters &= Q(updated_at__gte=start_date)
+
+    if end_date:
+        filters &= Q(updated_at__lte=end_date)
+
+    history = await Payment.filter(filters).offset(offset).limit(limit)
+
+    return history
 
