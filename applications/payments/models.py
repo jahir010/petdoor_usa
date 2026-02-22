@@ -8,10 +8,11 @@ class Payment(models.Model):
     post = fields.ForeignKeyField("models.PostRequest", related_name="payments")
     customer = fields.ForeignKeyField("models.User", related_name="customer_payments")
     installer = fields.ForeignKeyField("models.User", related_name="installer_payments")
-    stripe_payment_intent_id = fields.CharField(max_length=100, unique=True)
+    payment_type = fields.CharField(max_length=10, default="cash")
+    stripe_payment_intent_id = fields.CharField(max_length=100, unique=True, null=True)
     stripe_charge_id = fields.CharField(max_length=100, null=True)
     amount = fields.IntField()              # total in cents
-    platform_fee = fields.IntField()        # your commission in cents
+    platform_fee = fields.IntField(default=0)        # your commission in cents
     installer_amount = fields.IntField()    # amount installer gets
     currency = fields.CharField(max_length=10, default="usd")
     status = fields.CharField(max_length=30, default="pending") # pending | succeeded | failed | refunded
