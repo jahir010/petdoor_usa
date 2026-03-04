@@ -111,7 +111,7 @@ class User(models.Model):
 
 class DeviceToken(models.Model):
     id = fields.IntField(pk=True)
-    user_id = fields.IntField()
+    user_id = fields.CharField(max_length=64)
     token = fields.CharField(max_length=256)
     platform = fields.CharField(max_length=32)
     created_at = fields.DatetimeField(auto_now_add=True)
