@@ -21,7 +21,7 @@ router = APIRouter(tags=['notification'])
 
 
 class DeviceTokenIn(BaseModel):
-    user_id: int
+    user_id: str
     token: str
     platform: str
 
