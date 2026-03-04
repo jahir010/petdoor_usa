@@ -26,7 +26,7 @@ class DeviceTokenIn(BaseModel):
     platform: str
 
 class NotificationIn(BaseModel):
-    user_id: int
+    user_id: str
     title: str
     body: str
 
