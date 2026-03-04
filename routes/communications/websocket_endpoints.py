@@ -378,7 +378,8 @@ async def get_chat_history(
 
         return {
             "messages": [
-                {
+                { 
+                    "message_id": m.message_id,
                     "from_type": m.from_type,
                     "from_id": m.from_id,
                     "from_name": m.from_name,
