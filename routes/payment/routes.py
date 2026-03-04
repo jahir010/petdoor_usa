@@ -75,7 +75,14 @@ async def account_ready(
         raise HTTPException(400, "Installer not ready for payments")
     
 
-    return account
+    # return 
+    return {"is_ready": (
+        account["charges_enabled"]
+        and account["payouts_enabled"]
+        and account["capabilities"]["card_payments"] == "active"
+        and account["requirements"]["disabled_reason"] is None
+        and not account["requirements"]["currently_due"]
+    ), "account": account}
 
 
 
