@@ -193,7 +193,7 @@ async def create_post_from_admin(
     installation_surface: InstallationSurface = Form(...),
     address: str = Form(...),
     photos: list[UploadFile] = File(None),
-    cust_ids: list[str] = Form(...),
+    inst_ids: list[str] = Form(...),
     user: User = Depends(role_required(UserRole.ADMIN))
 ):
     if not user:
@@ -227,13 +227,16 @@ async def create_post_from_admin(
         cust_phone = cust_phone
     )
 
+    post.metadata = { "installers": inst_ids }
+    await post.save()
 
-    if cust_ids:
-        for cust_id in cust_ids:
+
+    if inst_ids:
+        for inst_id in inst_ids:
             try:
                 await send_notification(NotificationIn(
-                    user_id=cust_id,
-                    title="New boj assined",
+                    user_id=inst_id,
+                    title="New job assigned",
                     body=f"You have assigned a new job {post.id} . please accept the job",
                 ))
             except Exception as e:
@@ -241,6 +244,26 @@ async def create_post_from_admin(
 
 
     return {"post": post, "cust_info": cust_info}
+
+
+
+@router.get("/posts-admin/")
+async def list_posts_from_admin(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1),
+    user: User = Depends(role_required(UserRole.INSTALLER))
+):
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    
+    posts = await PostRequest.filter(
+            metadata__contains={"installers": [user.id]},
+            installer=None
+        ).order_by("-updated_at", "-created_at").offset(offset).limit(limit)
+    if not posts:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="posts not found")
+    
+    return {"posts": posts}
 
 
 
