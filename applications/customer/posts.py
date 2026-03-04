@@ -45,6 +45,7 @@ class PostRequest(models.Model):
     additional_service_note = fields.TextField(null=True)
     is_customer_satisfied = fields.BooleanField(null=True)
     customer_satisfaction_note = fields.TextField(null=True)
+    metadata = fields.JSONField(null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
 
