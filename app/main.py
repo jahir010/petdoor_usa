@@ -14,6 +14,7 @@ from app.redis import init_redis, redis_client
 from app.routes import register_routes
 from app.utils.sync_permissions import sync_permissions
 from app.utils.auto_routing import get_module
+from app.utils.firebase_push import init_firebase
 from fastapi.templating import Jinja2Templates
 from app.dummy.user import seed_users
 
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     await init_db()
     init_redis()
     start_scheduler()
+    init_firebase()
     try:
         await sync_permissions()
     except Exception as e:
