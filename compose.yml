@@ -10,7 +10,7 @@ services:
     image: ${IMAGE_NAMESPACE:-moynul2k3}/outdoorda-backend:${IMAGE_TAG:-latest}
     container_name: outdoorda_api
     ports:
-      - "8000:8000"
+      - "9920:8000"
     env_file:
       - .env
     volumes:
