@@ -28,8 +28,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/outdoorda:latest
-            ${{ secrets.DOCKER_USERNAME }}/outdoorda:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/outdoorda-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/outdoorda-backend:${{ github.sha }}
 
   deploy:
     name: Deploy
