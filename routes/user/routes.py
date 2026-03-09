@@ -119,7 +119,6 @@ async def update_two_factor(
     return {
         "status": "success",
         "two_factor_enabled": user.is_otp,
-        "two-factor": user.is_otp,
     }
 
 
