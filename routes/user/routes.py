@@ -30,6 +30,7 @@ async def serialize_user(user: User) -> Dict[str, Any]:
         "photo": user.photo,
         "role": user.role,
         "is_active": user.is_active,
+        "two_factor_enabled": user.is_otp,
         "is_suspended": user.is_suspended,
         "is_staff": user.is_staff,
         "created_at": user.created_at,
