@@ -115,10 +115,11 @@ async def update_two_factor(
    user: User = Depends(login_required), 
 ):
     user.is_otp = not user.is_otp
-    user = await user.save()
+    await user.save(update_fields=["is_otp"])
     return {
         "status": "success",
-        "two-factor": user.is_otp
+        "two_factor_enabled": user.is_otp,
+        "two-factor": user.is_otp,
     }
 
 
