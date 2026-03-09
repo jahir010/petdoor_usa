@@ -377,7 +377,7 @@ async def update_post(
         if new_status is not None:
             if user.role == UserRole.INSTALLER and post.status == StatusEnum.INSTALLER_ASSIGNED and new_status == StatusEnum.IN_PROGRESS:
                 update_fields["status"] = new_status
-            elif user.role == UserRole.CUSTOMER and post.status in [StatusEnum.IN_PROGRESS, StatusEnum.INSTALLER_ASSIGNED] and new_status == StatusEnum.COMPLETED:
+            elif user.role in [UserRole.CUSTOMER, UserRole.ADMIN] and post.status in [StatusEnum.IN_PROGRESS, StatusEnum.INSTALLER_ASSIGNED] and new_status == StatusEnum.COMPLETED:
                 update_fields["status"] = new_status
             else: 
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to change this status!")
