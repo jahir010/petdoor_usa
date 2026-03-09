@@ -110,6 +110,17 @@ async def update_profile(
 
     return await serialize_user(user)
 
+@router.patch("/toggle-two-factor")
+async def update_two_factor(
+   user: User = Depends(login_required), 
+):
+    user.is_otp = not user.is_otp
+    user = await user.save()
+    return {
+        "status": "success",
+        "two-factor": user.is_otp
+    }
+
 
 
 
