@@ -251,7 +251,7 @@ async def create_post_from_admin(
 async def list_posts_from_admin(
     offset: int = Query(0, ge=0),
     limit: int = Query(10, ge=1),
-    user: User = Depends(role_required(UserRole.INSTALLER))
+    user: User = Depends(role_required(UserRole.INSTALLER, isGranted=True))
 ):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
@@ -444,7 +444,7 @@ async def payment_history(
 
 @router.get("/payment-settings/")
 async def payment_settings(
-    user: User = Depends(role_required(UserRole.ADMIN))
+    user: User = Depends(role_required(UserRole.ADMIN, UserRole.CUSTOMER))
     ):
     payment_setting = await PaymentSettings.filter().first()
 
