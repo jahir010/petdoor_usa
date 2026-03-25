@@ -44,13 +44,6 @@ COPY . .
 # Create writable runtime folders and startup script permissions
 RUN mkdir -p /app/media /app/migrations && chmod +x /app/start.sh
 
-# Add non-root user with a fixed UID/GID to match docker-compose runtime user mapping.
-RUN groupadd -g 1003 fastapiuser && useradd -m -u 1003 -g 1003 fastapiuser
-RUN chown -R fastapiuser:fastapiuser /app
-
-# Switch to non-root user
-USER fastapiuser
-
 EXPOSE 8000
 
 # Start the app
