@@ -7,6 +7,7 @@ from app.auth import login_required, role_required
 from firebase_admin import messaging
 from applications.communication.notifications import PushNotification, NotificationSetting
 from typing import Optional
+from app.utils.firebase_push import is_firebase_initialized
 
 
 
@@ -47,6 +48,9 @@ async def save_device_token(data: DeviceTokenIn, user: User = Depends(get_curren
 
 @router.post("/send_notification/")
 async def send_notification(data: NotificationIn):
+    if not is_firebase_initialized():
+        raise HTTPException(503, "Push notifications are not configured")
+
     device = await DeviceToken.filter(user_id=data.user_id).first()
     if not device:
         raise HTTPException(404, "Device token not found")
