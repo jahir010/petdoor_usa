@@ -30,6 +30,7 @@ async def serialize_user(user: User) -> Dict[str, Any]:
         "photo": user.photo,
         "role": user.role,
         "is_active": user.is_active,
+        "two_factor_enabled": user.is_otp,
         "is_suspended": user.is_suspended,
         "is_staff": user.is_staff,
         "created_at": user.created_at,
@@ -109,6 +110,17 @@ async def update_profile(
         await user.save()
 
     return await serialize_user(user)
+
+@router.patch("/toggle-two-factor")
+async def update_two_factor(
+   user: User = Depends(login_required), 
+):
+    user.is_otp = not user.is_otp
+    await user.save(update_fields=["is_otp"])
+    return {
+        "status": "success",
+        "two_factor_enabled": user.is_otp,
+    }
 
 
 

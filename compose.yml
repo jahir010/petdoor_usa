@@ -3,97 +3,26 @@ networks:
     driver: bridge
 
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: outdoorda-redis
-    restart: always
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-    networks:
-      - outdoorda_net
-
-#  db:
-#    image: mysql:8.1
-#    container_name: db
-#    environment:
-#      MYSQL_DATABASE: ${DB_NAME}
-#      MYSQL_USER: ${DB_USER}
-#      MYSQL_PASSWORD: ${DB_PASSWORD}
-#      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-#    volumes:
-#      - db_data:/var/lib/mysql
-#    restart: always
-#    healthcheck:
-#      test: ["CMD-SHELL", "mysqladmin ping -u ${DB_USER} -p${MYSQL_PASSWORD}"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
-#
-#    networks:
-#      - outdoorda_net
-
   api:
-#    image: softvence/outdoorda-backend:latest
-    build: .
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    image: ${IMAGE_NAMESPACE:-moynul2k3}/outdoorda-backend:${IMAGE_TAG:-latest}
     container_name: outdoorda_api
     ports:
-      - "8000:8000"
+      - "9920:8000"
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./media:/app/media
     restart: always
-    depends_on:
-#      - db
-      - redis
-    command: >
-      sh -c "
-        aerich init-db || true &&
-        aerich migrate &&
-        aerich upgrade || aerich upgrade --fake &&
-        uvicorn app.main:app --host 0.0.0.0 --port 8000
-      "
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8000/health || exit 1" ]
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8000/ > /dev/null || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 5
 
     networks:
       - outdoorda_net
-
-#  phpmyadmin:
-#    image: phpmyadmin/phpmyadmin:latest
-#    container_name: phpmyadmin
-#    environment:
-#      PMA_HOST: db
-#      PMA_PORT: 3306
-#      PMA_USER: ${DB_USER}
-#      PMA_PASSWORD: ${DB_PASSWORD}
-#    ports:
-#      - "8080:80"
-#    restart: always
-#    depends_on:
-#      - db
-#    networks:
-#      - outdoorda_net
-
-  nginx:
-    image: nginx:alpine
-    container_name: nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/sites:/etc/nginx/conf.d
-    depends_on:
-      - api
-    restart: unless-stopped
-    networks:
-      - outdoorda_net
-
-volumes:
-  db_data:

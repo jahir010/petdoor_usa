@@ -2,13 +2,13 @@ name: Build, Docker & Deploy
 
 on:
   push:
-    branches: [deploy]
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,14 +28,13 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/kyjuanbrown:latest
-            ${{ secrets.DOCKER_USERNAME }}/kyjuanbrown:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/outdoorda-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/outdoorda-backend:${{ github.sha }}
 
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 
@@ -43,24 +42,27 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USERNAME}}
           password: ${{ secrets.VPS_PASSWORD }}
           source: "compose.yml,.env"
-          target: /home/${{ secrets.VPS_USERNAME}}/kyjuanbrown
+          target: /home/${{ secrets.VPS_USERNAME}}/outdoorda
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USERNAME}}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             set -e
-            cd /home/${{ secrets.VPS_USERNAME}}/kyjuanbrown
+            cd /home/${{ secrets.VPS_USERNAME}}/outdoorda
 
             export $(grep -v '^#' .env | xargs)
 
-            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            export IMAGE_NAMESPACE=${{ secrets.DOCKER_USERNAME }}
+            export IMAGE_TAG=latest
             docker compose pull
             docker compose down --remove-orphans
             docker compose up -d 
