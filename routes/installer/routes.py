@@ -56,7 +56,7 @@ async def get_installer_earnings(
     earnings = result[0]["total"] if result and result[0]["total"] else 0.0
 
 
-    return {"installer_id": user.id, "in_progress_count": in_progress_count, "completed_count": completed_count, "earnings": earnings}
+    return {"installer_id": user.id, "in_progress_count": in_progress_count, "completed_count": completed_count, "earnings": earnings, "commision": user.payable_commision_ammount}
 
 
 

@@ -1,6 +1,11 @@
 from tortoise import fields, models
 
+from enum import Enum
 
+
+class PaymentType(str, Enum):
+    STRIPE = "stripe"
+    OTHERS = "others"
 
 
 class Payment(models.Model):
@@ -30,4 +35,24 @@ class Payout(models.Model):
     status = fields.CharField(max_length=30) # pending | paid | failed
     arrival_date = fields.DatetimeField(null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
+
+
+
+# class CommisionLog(models.Model):
+#     id = fields.UUIDField(pk=True)
+#     installer = fields.ForeignKeyField("models.User", related_name="installer_commisions")
+#     #post = fields.ForeignKeyField("models.PostRequest", related_name="commisions")
+#     amount = fields.FloatField(default=0.0)
+#     created_at = fields.DatetimeField(auto_now_add=True)
+
+
+class InstallerPayment(models.Model):
+    id = fields.UUIDField(pk=True)
+    installer = fields.ForeignKeyField("models.User", related_name="admin_payments")
+    payment_type = fields.CharEnumField(PaymentType)
+    amount = fields.FloatField()
+    status = fields.CharField(max_length=30, default="pending")
+    stripe_payment_intent_id = fields.CharField(max_length=100, unique=True, null=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+
 

@@ -29,6 +29,8 @@ async def serialize_user(user: User) -> Dict[str, Any]:
         "name": user.name,
         "photo": user.photo,
         "role": user.role,
+        "total_earnings": user.total_earnings,
+        "payable_commission_amount": user.payable_commision_ammount,
         "is_active": user.is_active,
         "two_factor_enabled": user.is_otp,
         "is_suspended": user.is_suspended,

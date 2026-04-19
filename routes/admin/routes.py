@@ -191,9 +191,10 @@ async def create_post_from_admin(
     price: float = Form(...),
     size: str = Form(...),
     installation_surface: InstallationSurface = Form(...),
+    service_area_id: int = Form(...),
     address: str = Form(...),
     photos: list[UploadFile] = File(None),
-    inst_ids: list[str] = Form(...),
+    inst_ids: Optional[list[str]] = Form(None),
     user: User = Depends(role_required(UserRole.ADMIN))
 ):
     if not user:
@@ -210,12 +211,12 @@ async def create_post_from_admin(
 
     post = await PostRequest.create(
         customer_id=user.id,
-        area_id=1,
         pet_name=pet_name,
         pet_type=pet_type,
         price=price,
         size=size,
         installation_surface=installation_surface,
+        area_id = service_area_id,
         Address=address,
         photos=photo_urls
     )
