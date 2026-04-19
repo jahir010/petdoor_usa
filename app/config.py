@@ -29,8 +29,8 @@ class Settings(BaseSettings):
     SECRET_KEY: Optional[str] = None
     BASE_URL: str = "http://localhost:8000/"
     REDIS_URL: str = "redis://redis:6379/0"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30  # 7 days
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 60
 
     TWILIO_ACCOUNT_SID: str = ""
     TWILIO_AUTH_TOKEN: str = ""
