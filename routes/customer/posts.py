@@ -134,7 +134,7 @@ async def list_posts(
             installer_id=user.id
         ).values_list("area_id", flat=True)
 
-        query1 = Q(area_id__in=areas) & Q(installer_id__isnull=True)
+        query1 = Q(installer_id__isnull=True) & (Q(area_id__in=areas) | Q(metadata__contains={"installers": [user.id]}))
         query2 = Q(installer_id=user.id)
 
         if new_status:
@@ -377,8 +377,10 @@ async def update_post(
         if new_status is not None:
             if user.role == UserRole.INSTALLER and post.status == StatusEnum.INSTALLER_ASSIGNED and new_status == StatusEnum.IN_PROGRESS:
                 update_fields["status"] = new_status
-            elif user.role in [UserRole.CUSTOMER, UserRole.ADMIN] and post.status in [StatusEnum.IN_PROGRESS, StatusEnum.INSTALLER_ASSIGNED] and new_status == StatusEnum.COMPLETED:
+            elif user.role in [UserRole.INSTALLER] and post.status in [StatusEnum.IN_PROGRESS, StatusEnum.INSTALLER_ASSIGNED] and new_status == StatusEnum.COMPLETED:
                 update_fields["status"] = new_status
+                user.total_earnings += post.price
+                user.payable_commision_ammount += (post.price * 0.2)
             else: 
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to change this status!")
         if scheduled_date is not None:

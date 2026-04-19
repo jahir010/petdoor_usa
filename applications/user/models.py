@@ -50,6 +50,8 @@ class User(models.Model):
 
     stripe_account_id = fields.CharField(max_length=100, null=True)
     stripe_account_completed = fields.BooleanField(default=False)
+    total_earnings = fields.FloatField(default=0.0)
+    payable_commision_ammount = fields.FloatField(default=0.0)
 
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
