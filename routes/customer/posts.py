@@ -240,7 +240,7 @@ async def list_bids(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
     
-    if post_id and user.role == UserRole.CUSTOMER:
+    if post_id and (user.role == UserRole.CUSTOMER | user.role == UserRole.ADMIN):
         post = await PostRequest.filter(id=post_id, customer_id=user.id).prefetch_related("customer").first()
         if not post:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
@@ -277,7 +277,7 @@ async def list_bids(
 @router.post("/bid/{bid_id}/accept/")
 async def accept_bid(
     bid_id: str,
-    user: User = Depends(role_required(UserRole.CUSTOMER))
+    user: User = Depends(get_current_user)
 ):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
