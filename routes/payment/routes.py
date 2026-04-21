@@ -6,6 +6,7 @@ from app.config import settings
 from app.token import get_current_user
 from applications.customer.posts import PostRequest, Bid, InstallationSurface, StatusEnum
 from applications.payments.models import Payment, Payout, InstallerPayment, PaymentType
+from routes.communications.notifications import send_notification, NotificationIn
 from app.auth import login_required, role_required
 from app.utils.file_manager import save_file
 from typing import Optional
@@ -152,6 +153,9 @@ async def create_payment_intent(
 ):
     if user.payable_commision_ammount < amount or amount <= 0:
         raise HTTPException(400, "Amount exceeds payable commission")
+    
+    user.payable_commision_ammount -= amount
+    await user.save()
 
    
     if payment_type == PaymentType.STRIPE:
@@ -192,6 +196,16 @@ async def create_payment_intent(
             status="pending"
         )
 
+        try:
+            admin = await User.get(role=UserRole.ADMIN)
+            await send_notification(NotificationIn(
+                user_id=admin.id,
+                title="New payment approval requested",
+                body=f"A new payment approval has been requested for {payment.amount} from {user.name}. Please review and mark as received or rejected."
+            ))
+        except:
+            pass
+
         return {
             "payment": payment
         }
@@ -219,11 +233,17 @@ async def stripe_webhook(request: Request):
         payment = await InstallerPayment.get(installer_id = installer_id)
         payment.status = "succeeded"
         await payment.save()
+
+    else:
+        payment = await InstallerPayment.get(installer_id = installer_id)
+        payment.status = "failed"
+        await payment.save()
         installer = await User.get(id=installer_id)
-        installer.payable_commision_ammount -= commision_amount
+        installer.payable_commision_ammount += commision_amount
         await installer.save()
 
-    return {"status": "success"}
+
+    return {"status": payment.status}
 
 
 
@@ -281,15 +301,38 @@ async def get_installer_payments(
 
 
 @router.put("/installer/payments/{payment_id}/mark-paid")
-async def mark_payment_paid(payment_id: str, user: User = Depends(role_required(UserRole.ADMIN))):
+async def mark_payment_paid(payment_id: str, action: str, user: User = Depends(role_required(UserRole.ADMIN))):
     payment = await InstallerPayment.get_or_none(id=payment_id)
     if not payment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
     
-    payment.status = "succeeded"
-    await payment.save()
     installer_id = payment.installer_id
     installer = await User.get(id=installer_id)
-    installer.payable_commision_ammount -= payment.amount
+    
+    if action == "received":
+        payment.status = "succeeded"
+        try:
+            await send_notification(NotificationIn(
+                user_id=installer.id,
+                title="Payment received",
+                body=f"Your payment of {payment.amount} has been marked as received. "
+            ))
+        except:
+            pass
+
+    if action == "rejected":
+        payment.status = "failed"
+        installer.payable_commision_ammount += payment.amount
+        try:
+            await send_notification(NotificationIn(
+                user_id=installer.id,
+                title="Payment rejected",
+                body=f"Your payment of {payment.amount} has been marked as rejected."
+            ))
+        except:
+            pass
+
+    await payment.save()
     await installer.save()
+
     return payment
