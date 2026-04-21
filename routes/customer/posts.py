@@ -240,7 +240,7 @@ async def list_bids(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
     
-    if post_id and (user.role == UserRole.CUSTOMER | user.role == UserRole.ADMIN):
+    if post_id and user.role in [UserRole.CUSTOMER, UserRole.ADMIN]:
         post = await PostRequest.filter(id=post_id, customer_id=user.id).prefetch_related("customer").first()
         if not post:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
@@ -377,7 +377,7 @@ async def update_post(
         if new_status is not None:
             if user.role == UserRole.INSTALLER and post.status == StatusEnum.INSTALLER_ASSIGNED and new_status == StatusEnum.IN_PROGRESS:
                 update_fields["status"] = new_status
-            elif user.role in [UserRole.INSTALLER] and post.status in [StatusEnum.IN_PROGRESS, StatusEnum.INSTALLER_ASSIGNED] and new_status == StatusEnum.COMPLETED:
+            elif user.role in [UserRole.INSTALLER] and post.status in [StatusEnum.IN_PROGRESS, StatusEnum.INSTALLER_ASSIGNED, StatusEnum.INSTALLER_ASSIGNED] and new_status == StatusEnum.COMPLETED:
                 update_fields["status"] = new_status
                 user.total_earnings += post.price
                 user.payable_commision_ammount += (post.price * 0.2)
@@ -400,6 +400,7 @@ async def update_post(
             setattr(post, field, value)
 
         await post.save()
+        await user.save()
 
         return {"message": "Post updated successfully", "post": post}
 
