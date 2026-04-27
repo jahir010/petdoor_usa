@@ -3,10 +3,12 @@ from pydantic import BaseModel
 from applications.user.models import User, UserRole
 from app.token import get_current_user
 from applications.customer.posts import PostRequest, Bid, InstallationSurface, StatusEnum
+from applications.admin.models import CustomerInfo
 from applications.installer.models import InstallerServiceArea
 from routes.communications.notifications import send_notification, NotificationIn
 from app.auth import login_required, role_required
 from app.utils.file_manager import save_file
+from app.utils.send_email import send_email
 from typing import Optional, Dict, Any
 from datetime import datetime
 from tortoise.expressions import Q
@@ -21,7 +23,7 @@ router = APIRouter(tags=['Customer Posts'])
 
 async def serialize_bid(bid: Bid) -> Dict[str, Any]:
 
-    print(bid)
+    # print(bid)
     
     data = {
         "id": bid.id,
@@ -34,7 +36,7 @@ async def serialize_bid(bid: Bid) -> Dict[str, Any]:
         "created_at": bid.created_at,
         "updated_at": bid.updated_at
     }
-    print(data)
+    # print(data)
 
     return data
 
@@ -47,7 +49,12 @@ async def create_post(
     size: str = Form(...),
     installation_surface: InstallationSurface = Form(...),
     service_area_id: int = Form(...),
-    address: str = Form(...),
+    address_line_1: str = Form(...),
+    address_line_2: Optional[str] = Form(None),
+    city: str = Form(...),
+    state: str = Form(...),
+    zip_code: str = Form(...),
+    country: str = Form(...),
     photos: list[UploadFile] = File(None),
     user: User = Depends(role_required(UserRole.CUSTOMER))
 ):
@@ -71,7 +78,12 @@ async def create_post(
         size=size,
         installation_surface=installation_surface,
         area_id = service_area_id,
-        Address=address,
+        address_line_1=address_line_1,
+        address_line_2=address_line_2,
+        city=city,
+        state=state,
+        zip_code=zip_code,
+        country=country,
         photos=photo_urls
     )
 
@@ -79,7 +91,7 @@ async def create_post(
 
 
     for area in area_installers:
-        print(f"installer id: {area.installer_id}")
+        #print(f"installer id: {area.installer_id}")
         try:
             await send_notification(NotificationIn(
                 user_id=area.installer_id,
@@ -282,13 +294,16 @@ async def accept_bid(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
-    bid = await Bid.filter(id=bid_id).first()
+    bid = await Bid.filter(id=bid_id).prefetch_related("installer").first()
     if not bid:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bid not found")
 
     post = await PostRequest.filter(id=bid.post_request_id).first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    
+    price = post.price
+    extra_cost = bid.price - price
 
     if post.customer_id != user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
@@ -300,6 +315,72 @@ async def accept_bid(
     post.assigned_at = datetime.now()
 
     await post.save()
+    cust_info = await CustomerInfo.filter(post_request_id=post.id).first()
+
+    try:
+        await send_email(subject="Your Job Has Been Assigned", to=cust_info.cust_email, html_message=
+                         f"""<!DOCTYPE html>
+
+                            <html>
+                            <head>
+                            <meta charset="UTF-8">
+                            </head>
+                            <body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+                            <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; margin-top:20px; border-radius:8px; overflow:hidden;">
+
+                            <tr>
+                            <td style="background-color:#4CAF50; color:#ffffff; padding:20px; text-align:center; font-size:20px; font-weight:bold;">
+                                Petdoorusa
+                            </td>
+                            </tr>
+
+                            <tr>
+                            <td style="padding:20px; color:#333333; font-size:15px; line-height:1.6;">
+                                <p>Hi {cust_info.cust_name},</p>
+
+                                <p>Your pet door installation job has now been officially assigned to an installer.</p>
+
+                                <h3 style="margin-top:20px;">Job Details:</h3>
+                                <ul style="padding-left:20px;">
+                                <li><strong>Job ID:</strong> {post.id}</li>
+                                <li><strong>Original Price:</strong> ${price:.2f}</li>
+                                <li><strong>Additional Cost:</strong> ${extra_cost}</li>
+                                <li><strong>Total Cost:</strong> ${post.price:.2f}</li>
+                                <li><strong>Assigned Installer:</strong> {bid.installer.name}</li>
+                                </ul>
+
+                                <h3 style="margin-top:20px;">Reason:</h3>
+                                <p>{bid.note}</p>
+
+                                <p style="margin-top:20px;">
+                                The installer will proceed with the job shortly and may contact you for final scheduling.
+                                </p>
+
+                                <p>
+                                If you have any concerns or need assistance, please let us know.
+                                </p>
+
+                                <h3 style="margin-top:20px;">Installer Contact Information:</h3>
+                                <ul style="padding-left:20px;">
+                                <li><strong>Name:</strong> {bid.installer.name}</li>
+                                <li><strong>Email:</strong> {bid.installer.email}</li>
+                                <li><strong>Phone:</strong> {bid.installer.phone}</li>
+                                </ul>
+
+                                <p style="margin-top:30px;">
+                                Best regards,<br>
+                                <strong>Petdoorusa Team</strong>
+                                </p>
+                            </td>
+                            </tr>
+
+                            </table>
+                            </body>
+                            </html>
+                            """)
+
+    except:
+        pass
 
     try:
         await send_notification(NotificationIn(
@@ -325,7 +406,7 @@ async def accept_post_without_bid(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
     post = await PostRequest.filter(id=post_id).prefetch_related("customer").first()
-
+    
     
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
@@ -338,6 +419,68 @@ async def accept_post_without_bid(
     post.assigned_at = datetime.now()
 
     await post.save()
+    cust_info = await CustomerInfo.filter(post_request_id=post.id).first()
+
+    print(f"post customer email: {cust_info.cust_email}")
+
+    try:
+        await send_email(subject="Your Job Has Been Accepted by an Installer", to=cust_info.cust_email, html_message=f"""<!DOCTYPE html>
+
+                            <html>
+                            <head>
+                            <meta charset="UTF-8">
+                            </head>
+                            <body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+                            <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; margin-top:20px; border-radius:8px; overflow:hidden;">
+
+                            <tr>
+                            <td style="background-color:#4CAF50; color:#ffffff; padding:20px; text-align:center; font-size:20px; font-weight:bold;">
+                                Petdorausa
+                            </td>
+                            </tr>
+
+                            <tr>
+                            <td style="padding:20px; color:#333333; font-size:15px; line-height:1.6;">
+                                <p>Hi {cust_info.cust_name},</p>
+
+                                <p><strong>Good news!</strong> Your pet door installation job has been accepted by an installer.</p>
+
+                                <h3 style="margin-top:20px;">Job Details:</h3>
+                                <ul style="padding-left:20px;">
+                                <li><strong>Job ID:</strong> {post.id}</li>
+                                <li><strong>Accepted Price:</strong> ${post.price}</li>
+                                <li><strong>Installer:</strong> {user.name}</li>
+                                </ul>
+
+                                <p style="margin-top:20px;">
+                                The installer will contact you soon to schedule the work.
+                                </p>
+
+                                <h3 style="margin-top:20px;">Installer Contact Information:</h3>
+                                <ul style="padding-left:20px;">
+                                <li><strong>Name:</strong> {user.name}</li>
+                                <li><strong>Email:</strong> {user.email}</li>
+                                <li><strong>Phone:</strong> {user.phone}</li>
+                                </ul>
+
+                                <p style="margin-top:20px;">
+                                If you have any questions, feel free to reach out.
+                                </p>
+
+                                <p style="margin-top:30px;">
+                                Best regards,<br>
+                                <strong>Petdorausa Team</strong>
+                                </p>
+                            </td>
+                            </tr>
+
+                            </table>
+                            </body>
+                            </html>
+                            """)
+        
+    except: 
+        pass
 
     try:
         await send_notification(NotificationIn(

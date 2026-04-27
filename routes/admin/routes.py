@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Request, Response, UploadFile, File, Query, Path
 from pydantic import BaseModel
+from app.utils.send_email import send_email
 from applications.user.models import User, UserRole
 from applications.admin.models import FAQ, ContactInfo, CustomerInfo, ServiceArea, JobManagementSettings, PaymentSettings
 from app.token import get_current_user
@@ -192,7 +193,12 @@ async def create_post_from_admin(
     size: str = Form(...),
     installation_surface: InstallationSurface = Form(...),
     service_area_id: int = Form(...),
-    address: str = Form(...),
+    address_line_1: str = Form(...),
+    address_line_2: Optional[str] = Form(None),
+    city: str = Form(...),
+    state: str = Form(...),
+    zip_code: str = Form(...),
+    country: str = Form(...),
     photos: list[UploadFile] = File(None),
     inst_ids: Optional[list[str]] = Form(None),
     user: User = Depends(role_required(UserRole.ADMIN))
@@ -217,7 +223,12 @@ async def create_post_from_admin(
         size=size,
         installation_surface=installation_surface,
         area_id = service_area_id,
-        Address=address,
+        address_line_1=address_line_1,
+        address_line_2=address_line_2,
+        city=city,
+        state=state,
+        zip_code=zip_code,
+        country=country,
         photos=photo_urls
     )
 
@@ -230,6 +241,56 @@ async def create_post_from_admin(
 
     post.metadata = { "installers": inst_ids }
     await post.save()
+
+    try:
+        await send_email(subject="Your Pet Door Installation Job Has Been Created", to=cust_email, html_message=f"""<!DOCTYPE html>
+
+                                <html>
+                                <head>
+                                <meta charset="UTF-8">
+                                </head>
+                                <body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+                                <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; margin-top:20px; border-radius:8px; overflow:hidden;">
+                                <tr>
+                                <td style="background-color:#4CAF50; color:#ffffff; padding:20px; text-align:center; font-size:20px; font-weight:bold;">
+                                    Petdorausa
+                                </td>
+                                </tr>
+
+                                <tr>
+                                <td style="padding:20px; color:#333333; font-size:15px; line-height:1.6;">
+                                    <p>Hi {cust_name},</p>
+
+                                    <p>Your pet door installation request has been successfully created on your behalf.</p>
+
+                                    <h3 style="margin-top:20px;">Job Details:</h3>
+                                    <ul style="padding-left:20px;">
+                                    <li><strong>Service:</strong> Pet Door Installation</li>
+                                    <li><strong>Estimated Cost:</strong> ${price}</li>
+                                    <li><strong>Job ID:</strong> {post.id}</li>
+                                    </ul>
+
+                                    <p style="margin-top:20px;">
+                                    Our team will now review your request and notify installers. You will receive updates as soon as an installer responds.
+                                    </p>
+
+                                    <p>
+                                    If you have any questions or want to make changes, feel free to contact us.
+                                    </p>
+
+                                    <p style="margin-top:30px;">
+                                    Best regards,<br>
+                                    <strong>Petdorausa Team</strong>
+                                    </p>
+                                </td>
+                                </tr>
+
+                                </table>
+                                </body>
+                                </html>
+                                """)
+    except Exception as e:
+        pass
 
 
     if inst_ids:
