@@ -253,7 +253,7 @@ async def create_post_from_admin(
                                 <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; margin-top:20px; border-radius:8px; overflow:hidden;">
                                 <tr>
                                 <td style="background-color:#4CAF50; color:#ffffff; padding:20px; text-align:center; font-size:20px; font-weight:bold;">
-                                    Petdorausa
+                                    Petdoor USA
                                 </td>
                                 </tr>
 
@@ -280,7 +280,7 @@ async def create_post_from_admin(
 
                                     <p style="margin-top:30px;">
                                     Best regards,<br>
-                                    <strong>Petdorausa Team</strong>
+                                    <strong>Petdoor USA Team</strong>
                                     </p>
                                 </td>
                                 </tr>
