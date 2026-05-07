@@ -330,7 +330,7 @@ async def accept_bid(
 
                             <tr>
                             <td style="background-color:#4CAF50; color:#ffffff; padding:20px; text-align:center; font-size:20px; font-weight:bold;">
-                                Petdoorusa
+                                Petdoor USA
                             </td>
                             </tr>
 
@@ -369,7 +369,7 @@ async def accept_bid(
 
                                 <p style="margin-top:30px;">
                                 Best regards,<br>
-                                <strong>Petdoorusa Team</strong>
+                                <strong>Petdoor USA Team</strong>
                                 </p>
                             </td>
                             </tr>
@@ -435,7 +435,7 @@ async def accept_post_without_bid(
 
                             <tr>
                             <td style="background-color:#4CAF50; color:#ffffff; padding:20px; text-align:center; font-size:20px; font-weight:bold;">
-                                Petdorausa
+                                Petdoor USA
                             </td>
                             </tr>
 
@@ -469,7 +469,7 @@ async def accept_post_without_bid(
 
                                 <p style="margin-top:30px;">
                                 Best regards,<br>
-                                <strong>Petdorausa Team</strong>
+                                <strong>Petdoor USA Team</strong>
                                 </p>
                             </td>
                             </tr>
