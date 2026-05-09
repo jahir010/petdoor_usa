@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, Form, Request, Response
 from pydantic import BaseModel
 from pydantic import EmailStr
 from fastapi.security import OAuth2PasswordRequestForm
@@ -176,6 +176,7 @@ async def login(
 
 @router.post("/send_otp")
 async def send_otp(
+    background_tasks: BackgroundTasks,
     email: str = Form(...),
     purpose: str = Form("signup", description="""signup, installer_signup, forgot_password, update_email"""),
 ):
@@ -208,7 +209,8 @@ async def send_otp(
 
     # Generate OTP
     try:
-        otp = await generate_otp(email, purpose)
+        # otp = await generate_otp(email, purpose)
+        otp = background_tasks.add_task(generate_otp, email, purpose)
     except HTTPException:
         raise
     except Exception:
