@@ -69,33 +69,75 @@ async def generate_otp(user_key: str, purpose: str):
 
     otp = str(secrets.randbelow(900000) + 100000)
     await redis.set(otp_key, otp, ex=OTP_EXPIRY_SECONDS)
-    print(f"Generated OTP for {user_key} ({purpose}): {otp}")
 
-    PURPOSE_MESSAGES = {
-        "login": (
-            "Login Verification",
-            "Use the OTP below to login to your account.",
-        ),
-        "signup": (
-            "Login Verification",
-            "Use the OTP below to login to your account.",
-        ),
-        "installer_signup": (
-            "Verify Your Email",
-            "Thank you for registering as an agent. Please verify your email.",
-        ),
-        "forgot_password": (
-            "Reset Your Password",
-            "Use the OTP below to reset your password.",
-        ),
-    }
-
-    if purpose not in PURPOSE_MESSAGES:
-        raise HTTPException(status_code=400, detail="Invalid OTP purpose")
+    
 
     title = "Verify Your Email Address - Petdoor USA"
 
-    html_message = f"""html
+    if purpose == "login" or purpose == "forgot_password" or purpose == "update_email":
+        html_message = f"""html
+                <!DOCTYPE html>
+                <html>
+                <head>
+                <meta charset="UTF-8">
+                </head>
+
+                <body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+
+                <table align="center" width="100%" cellpadding="0" cellspacing="0"
+                style="max-width:600px; background:#ffffff; margin-top:20px; border-radius:8px; overflow:hidden;">
+
+                <tr>
+                <td style="background-color:#4CAF50; color:#ffffff; padding:20px; text-align:center; font-size:20px; font-weight:bold;">
+                    Petdoor USA
+                </td>
+                </tr>
+
+                <tr>
+                <td style="padding:20px; color:#333333; font-size:15px; line-height:1.6;">
+
+                    <p>Hi,</p>
+
+                    <p>
+                        Please verify your email address using the OTP below:
+                    </p>
+
+                    <div style="margin:30px 0; text-align:center;">
+                        <span style="
+                            display:inline-block;
+                            background:#f5f5f5;
+                            padding:15px 30px;
+                            font-size:28px;
+                            letter-spacing:5px;
+                            font-weight:bold;
+                            color:#4CAF50;
+                            border-radius:8px;
+                        ">
+                            {otp}
+                        </span>
+                    </div>
+
+                    <p>
+                        This OTP is valid for <strong>5 minutes</strong>.
+                        Please do not share this code with anyone for security reasons.
+                    </p>
+
+                    <p style="margin-top:30px;">
+                        Best regards,<br>
+                        <strong>Petdoor USA Team</strong>
+                    </p>
+
+                </td>
+                </tr>
+
+                </table>
+
+                </body>
+                </html>
+                """
+    else:
+
+        html_message = f"""html
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -163,7 +205,6 @@ async def generate_otp(user_key: str, purpose: str):
 
     if key_type == "email":
         if not settings.DEBUG:
-            print(f"DEBUG MODE: OTP for {user_key} is {otp}")
             try:
                 await send_email(
                     subject=title,

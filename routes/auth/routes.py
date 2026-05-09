@@ -187,6 +187,7 @@ async def send_otp(
     user = await User.get_or_none(email=email)
     SIGNUP_PURPOSES = {"signup", "installer_signup"}
     FORGOT_PURPOSES = {"forgot_password", "update_email"}
+    LOGIN_PURPOSES = {"login"}
 
 
     # Purpose validation
@@ -203,6 +204,12 @@ async def send_otp(
                 status_code=400,
                 detail="User not found for password reset.",
             )
+    elif purpose in LOGIN_PURPOSES:
+        if not user:
+            raise HTTPException(
+                status_code=400,
+                detail="User not found for login.",
+            )
     else:
         raise HTTPException(status_code=400, detail="Invalid purpose")
 
@@ -210,9 +217,9 @@ async def send_otp(
     # Generate OTP
     try:
         # otp = await generate_otp(email, purpose)
-        print(f"Scheduling OTP generation for {email} with purpose '{purpose}'")
+        #print(f"Scheduling OTP generation for {email} with purpose '{purpose}'")
         otp = background_tasks.add_task(generate_otp, email, purpose)
-        print(f"OTP generation task scheduled for {email} with purpose '{purpose}'")
+        #print(f"OTP generation task scheduled for {email} with purpose '{purpose}'")
     except HTTPException:
         raise
     except Exception:
