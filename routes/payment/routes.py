@@ -246,7 +246,7 @@ async def stripe_webhook(request: Request):
     return {"status": payment.status}
 
 
-@post("/manual-webhook")
+@router.post("/stripe/manual-webhook")
 async def manual_webhook(payment_id: str, status: bool):
     payment = await InstallerPayment.get(id=payment_id)
     if status:
