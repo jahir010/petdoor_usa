@@ -92,26 +92,84 @@ async def generate_otp(user_key: str, purpose: str):
     if purpose not in PURPOSE_MESSAGES:
         raise HTTPException(status_code=400, detail="Invalid OTP purpose")
 
-    title, message = PURPOSE_MESSAGES[purpose]
+    title = "Verify Your Email Address - Petdoor USA"
 
-    html_message = templates.get_template("otp_email.html").render({
-        "title": title,
-        "name": user_key,
-        "otp": otp,
-        "expires_in": OTP_EXPIRY_SECONDS // 60,
-        "message": message,
-    })
+    html_message = f"""html
+                <!DOCTYPE html>
+                <html>
+                <head>
+                <meta charset="UTF-8">
+                </head>
+
+                <body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+
+                <table align="center" width="100%" cellpadding="0" cellspacing="0"
+                style="max-width:600px; background:#ffffff; margin-top:20px; border-radius:8px; overflow:hidden;">
+
+                <tr>
+                <td style="background-color:#4CAF50; color:#ffffff; padding:20px; text-align:center; font-size:20px; font-weight:bold;">
+                    Petdoor USA
+                </td>
+                </tr>
+
+                <tr>
+                <td style="padding:20px; color:#333333; font-size:15px; line-height:1.6;">
+
+                    <p>Hi,</p>
+
+                    <p>
+                        Thank you for signing up with Petdoor USA.
+                        To complete your account registration, please verify your email address using the OTP below:
+                    </p>
+
+                    <div style="margin:30px 0; text-align:center;">
+                        <span style="
+                            display:inline-block;
+                            background:#f5f5f5;
+                            padding:15px 30px;
+                            font-size:28px;
+                            letter-spacing:5px;
+                            font-weight:bold;
+                            color:#4CAF50;
+                            border-radius:8px;
+                        ">
+                            {otp}
+                        </span>
+                    </div>
+
+                    <p>
+                        This OTP is valid for <strong>5 minutes</strong>.
+                        Please do not share this code with anyone for security reasons.
+                    </p>
+
+                    <p>
+                        If you did not create an account with Petdoor USA, you can safely ignore this email.
+                    </p>
+
+                    <p style="margin-top:30px;">
+                        Best regards,<br>
+                        <strong>Petdoor USA Team</strong>
+                    </p>
+
+                </td>
+                </tr>
+
+                </table>
+
+                </body>
+                </html>
+                """
 
     if key_type == "email":
         if not settings.DEBUG:
-            await send_email(
-                subject=title,
-                message=f"Your OTP is: {otp}",
-                html_message=html_message,
-                to_email=user_key,
-                retries=3,
-                delay=2,
-            )
+            try:
+                await send_email(
+                    subject=title,
+                    to=user_key,
+                    html_message=html_message
+                )            
+            except Exception as e:
+                print(f"Error sending email to {user_key}: {e}")
     else:
         raise HTTPException(status_code=400, detail="Invalid email")
 
