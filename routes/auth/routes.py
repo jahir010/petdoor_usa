@@ -210,7 +210,9 @@ async def send_otp(
     # Generate OTP
     try:
         # otp = await generate_otp(email, purpose)
+        print(f"Scheduling OTP generation for {email} with purpose '{purpose}'")
         otp = background_tasks.add_task(generate_otp, email, purpose)
+        print(f"OTP generation task scheduled for {email} with purpose '{purpose}'")
     except HTTPException:
         raise
     except Exception:

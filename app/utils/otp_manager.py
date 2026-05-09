@@ -69,6 +69,7 @@ async def generate_otp(user_key: str, purpose: str):
 
     otp = str(secrets.randbelow(900000) + 100000)
     await redis.set(otp_key, otp, ex=OTP_EXPIRY_SECONDS)
+    print(f"Generated OTP for {user_key} ({purpose}): {otp}")
 
     PURPOSE_MESSAGES = {
         "login": (
@@ -162,6 +163,7 @@ async def generate_otp(user_key: str, purpose: str):
 
     if key_type == "email":
         if not settings.DEBUG:
+            print(f"DEBUG MODE: OTP for {user_key} is {otp}")
             try:
                 await send_email(
                     subject=title,
