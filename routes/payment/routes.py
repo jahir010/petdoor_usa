@@ -246,6 +246,22 @@ async def stripe_webhook(request: Request):
     return {"status": payment.status}
 
 
+@post("/manual-webhook")
+async def manual_webhook(payment_id: str, status: bool):
+    payment = await InstallerPayment.get(id=payment_id)
+    if status:
+        payment.status = "succeeded"
+    else:
+        payment.status = "failed"
+        installer = await User.get(id=payment.installer_id)
+        installer.payable_commision_ammount += payment.amount
+        await installer.save()
+    
+    await payment.save()
+
+    return {"status": payment.status}
+
+
 
 @router.post("/cash-payment/")
 async def cash_payment(post_id: str = Form(...), user: User = Depends(get_current_user)):
