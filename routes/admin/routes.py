@@ -525,7 +525,7 @@ async def payment_settings(
 
     if payment_setting:
         payment_setting.status = new_status
-        await PaymentSettings.save()
+        await payment_setting.save()
     else:
         payment_setting = await PaymentSettings.create(status=new_status)
 
