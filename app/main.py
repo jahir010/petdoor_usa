@@ -68,6 +68,7 @@ async def home(request: Request):
 allow_origins = [
     "https://kyjuanbrown.com",
     "https://www.kyjuanbrown.com",
+    "https://petdoorusa.netlify.app",
     "*",
 ]
 if settings.DEBUG:
@@ -76,12 +77,13 @@ if settings.DEBUG:
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "https://petdoorusa.netlify.app",
         "*",
     ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*", "https://petdoorusa.netlify.app"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
