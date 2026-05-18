@@ -78,12 +78,11 @@ if settings.DEBUG:
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
         "https://petdoorusa.netlify.app",
-        "*",
     ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", "https://petdoorusa.netlify.app"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
