@@ -361,7 +361,7 @@ async def job_management(
     job_settings = await JobManagementSettings.filter().first()
 
     if job_settings:
-        if auto_assign_job:
+        if auto_assign_job is not None:
             job_settings.auto_assign_job = auto_assign_job
         if job_timeout_hours:
             job_settings.job_timeout_hours = job_timeout_hours
