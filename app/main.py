@@ -69,7 +69,6 @@ allow_origins = [
     "https://kyjuanbrown.com",
     "https://www.kyjuanbrown.com",
     "https://petdoorusa.netlify.app",
-    "*",
 ]
 if settings.DEBUG:
     allow_origins = [
